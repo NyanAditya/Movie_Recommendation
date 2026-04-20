@@ -1,0 +1,17 @@
+# Secrets
+.env
+
+# Environments
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
