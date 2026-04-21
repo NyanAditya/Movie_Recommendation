@@ -18,9 +18,17 @@ Tell me what you are in the mood for! My AI agents will:
 """)
 st.divider()
 
+# --- HCI Feature: Reducing Cognitive Load (Quick Starts) ---
+quick_start = st.pills(
+    "Quick Starts", 
+    ["🍿 Popcorn Night", "😭 Need a Cry", "🧠 Mind-Bending", "🎸 Musical Vibes", "💻 Tech Burnout Cure"]
+)
+
 # User Input Section
+default_text = quick_start if quick_start else ""
 user_input = st.text_area(
     "What are you looking to watch?", 
+    value=default_text,
     placeholder="E.g., I'm stressed from studying algorithms all day and just want to watch a funny 2010s movie in Hindi...",
     height=100
 )
@@ -28,40 +36,57 @@ user_input = st.text_area(
 # The Magic Button
 if st.button("Find My Movie", type="primary"):
     if not user_input.strip():
-        st.warning("Please type in your preferences first!")
+        st.warning("Please type in your preferences or click a Quick Start pill first!")
     else:
-        # --- Agent 1: Extraction ---
-        with st.spinner("Agent 1 is analyzing your request..."):
+        # --- HCI Feature: Visibility of System Status ---
+        with st.status("Deploying Agents...", expanded=True) as status:
+            
+            # Agent 1
+            st.write("🕵️‍♂️ Agent 1: Analyzing preferences...")
             preferences = analyze_preferences(user_input)
             
-        if not preferences:
-            st.error("Agent 1 failed to process your request. Please try again.")
-            st.stop()
-            
-        # Optional: Show the user what Agent 1 extracted (great for debugging/transparency)
-        with st.expander("See what Agent 1 extracted"):
-            st.json(preferences)
+            if not preferences:
+                status.update(label="Agent 1 encountered an error.", state="error", expanded=True)
+                st.stop()
+                
+            with st.expander("See what Agent 1 extracted"):
+                st.json(preferences)
 
-        # --- Agent 2: Database Search ---
-        with st.spinner("Agent 2 is querying the TMDB database..."):
+            # Agent 2
+            st.write("🔍 Agent 2: Searching global database...")
             movies = search_movies(preferences)
             
-        if not movies:
-            st.warning("Agent 2 couldn't find any movies matching those exact parameters. Try broadening your search!")
-            st.stop()
+            # --- HCI Feature: Error Prevention & Recovery ---
+            if not movies:
+                status.update(label="No exact matches found.", state="error", expanded=True)
+                st.warning("I couldn't find an exact match for those specific parameters.")
+                st.info("💡 Try removing the time period, broadening your mood, or checking out popular trending movies instead!")
+                st.stop()
 
-        # --- Agent 3: Ranking ---
-        with st.spinner("Agent 3 is reviewing the options and picking the best fits..."):
+            # Agent 3
+            st.write("🧠 Agent 3: Ranking top choices...")
             final_recs = rank_recommendations(movies, user_input)
             
-        if not final_recs or "recommendations" not in final_recs:
-            st.error("Agent 3 encountered an issue ranking the movies.")
-            st.stop()
+            if not final_recs or "recommendations" not in final_recs:
+                status.update(label="Agent 3 encountered an error.", state="error", expanded=True)
+                st.stop()
+
+            status.update(label="Recommendations Ready!", state="complete", expanded=False)
 
         # --- Display Results ---
         st.success("Here are your top personalized picks!")
         
         for i, rec in enumerate(final_recs["recommendations"]):
             st.subheader(f"{i+1}. {rec.get('title', 'Unknown Title')}")
-            st.write(f"**Why it fits:** {rec.get('reason', 'No reason provided.')}")
+            
+            # --- HCI Feature: Explainability & Transparency ---
+            st.info(f"**Agent's Thought Process:** {rec.get('reason', 'No reason provided.')}")
+            
+            # --- HCI Feature: Feedback Loops ---
+            feedback = st.feedback("thumbs", key=f"feedback_{i}")
+            if feedback == 0:
+                st.toast("Noted! I'll avoid movies like this in the future.")
+            elif feedback == 1:
+                st.toast("Great! I'll look for more like this.")
+                
             st.divider()
